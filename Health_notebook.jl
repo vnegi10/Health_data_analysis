@@ -48,9 +48,15 @@ md"
 ### Introduction
 ---
 
-In this notebook, we will analyze my activity data obtained via the Samsung Health app. The data is recorded by sensors present in the: 1) Galaxy S9+ phone - steps, distance (via a pedometer) and (2) Gear S3 Frontier watch - steps, distance, climbed floors, and heart rate (via a photoplethysmogram). Data are available in the form of .csv files, which makes them quite easy to use.
+In this notebook, we will analyze my activity data obtained via the Samsung Health app. The data is recorded by sensors present in my: 1) Galaxy S9+ phone - steps, distance (via a pedometer) and (2) Gear S3 Frontier watch - steps, distance, climbed floors, and heart rate (via a photoplethysmogram). Data are available in the form of .csv files, which makes them quite easy to use.
 
 We will read the data directly from my github repository using **CSV.jl**, and store them in the form of DataFrames. For visualization, we will make use of the excellent **VegaLite.jl** package.
+"
+
+# ╔═╡ 68a82310-ea56-4c79-937d-fd3f12961617
+md"
+### Pkg environment
+---
 "
 
 # ╔═╡ 2c49defa-0695-4974-8154-9f9688108a51
@@ -127,8 +133,10 @@ end
 
 # ╔═╡ b7dd0336-2dad-4c0c-b934-eb9d235b658d
 md"
-### Calculate cumulative distance, add it to a new column
+### Add some new columns
 ---
+
+We calculate the cumulative distance and add it to a separate column `cumul_distance`. For later use, it is also handy to classify days as 'weekday' or 'weekend', and add them to a separate `day_type` column. Similarly for `day` and `month` columns.
 "
 
 # ╔═╡ 6fa76290-bb8b-4b96-b54f-c68e1c699a4a
@@ -201,11 +209,18 @@ df_pedometer_filter |> @vlplot("mark"={:area, "line" = {"color" = "seagreen"},
 md" We can plot a histogram to see the distribution of steps between different years. Looking at data for 2020 vs 2019, it is clear that I have done less steps in 2020. This is likely due to the Corona situation.
 "
 
+# ╔═╡ 03c531ee-7177-4cfd-811b-ab902212fcdd
+md" **Change the number of max bins by dragging the slider below** "
+
+
+# ╔═╡ d7146451-a459-48ca-878f-c75b874ccd21
+@bind bins1 Slider(25:75, default=50, show_value=true)
+
 # ╔═╡ 00712037-2c82-4fd2-9777-e49d313e54fa
 df_pedometer_filter |> 
 
 @vlplot(:bar, 
-	x = {:step_count, "axis" = {"title" = "Number of steps", "labelFontSize" = 12, "titleFontSize" = 14}, "bin" = {"maxbins" = 50}}, 
+	x = {:step_count, "axis" = {"title" = "Number of steps", "labelFontSize" = 12, "titleFontSize" = 14}, "bin" = {"maxbins" = bins1}}, 
 	y = {"count()", "axis" = {"title" = "Number of counts", "labelFontSize" = 12, "titleFontSize" = 14 }}, 
 	width = 850, height = 500, 
 	"title" = {"text" = "Step count distribution from $(Date.(start_date)) to $(Date.(end_date))", "fontSize" = 16},
@@ -267,13 +282,18 @@ df_pedometer_filter |>
 md"
 ### Distribution of active time for the selected time period
 ---
+
+**Change the number of max bins by dragging the slider below**
 "
+
+# ╔═╡ cf320c13-2b65-4435-8f39-54d6217a7d1b
+@bind bins2 Slider(25:75, default=50, show_value=true)
 
 # ╔═╡ 61f017e1-ea63-4d6d-aedc-25d943871975
 df_pedometer_filter |> 
 
 @vlplot(:bar, 
-	x = {:active_time, "axis" = {"title" = "Measured active time [minutes]", "labelFontSize" = 12, "titleFontSize" = 14}, "bin" = {"maxbins" = 50}}, 
+	x = {:active_time, "axis" = {"title" = "Measured active time [minutes]", "labelFontSize" = 12, "titleFontSize" = 14}, "bin" = {"maxbins" = bins2}}, 
 	y = {"count()", "axis" = {"title" = "Number of counts", "labelFontSize" = 12, "titleFontSize" = 14 }}, 
 	width = 850, height = 500, 
 	"title" = {"text" = "Active time distribution from $(Date.(start_date)) to $(Date.(end_date))", "fontSize" = 16},
@@ -286,7 +306,7 @@ md" I appear to be quite active on Wednesdays, that is surprising!"
 df_pedometer_filter |> 
 
 @vlplot(:bar, 
-	x = {:active_time, "axis" = {"title" = "Measured active time [minutes]", "labelFontSize" = 12, "titleFontSize" = 14}, "bin" = {"maxbins" = 50}}, 
+	x = {:active_time, "axis" = {"title" = "Measured active time [minutes]", "labelFontSize" = 12, "titleFontSize" = 14}, "bin" = {"maxbins" = bins2}}, 
 	y = {"count()", "axis" = {"title" = "Number of counts", "labelFontSize" = 12, "titleFontSize" = 14 }}, 
 	width = 850, height = 500, 
 	"title" = {"text" = "Active time distribution from $(Date.(start_date)) to $(Date.(end_date))", "fontSize" = 16},
@@ -352,7 +372,7 @@ df_heart_filter |>
 
 # ╔═╡ ce3f3eb8-a7d0-4b05-942a-ec4bf1df5a6f
 md"
-### Show heart rate distribution for the selected time period
+### Heart rate distribution for the selected time period
 ---
 
 Heart rate is measured by my watch every 10 minutes. I wear it almost everyday. That means most of the data points are collected while I am sitting (mostly relaxed) at my desk for work. Data appears to be clustered around the resting heart rate range of 60-100 beats per minute. That's a relief!
@@ -404,7 +424,8 @@ df_floors |>
 # ╟─8268035c-aaf7-4811-b858-20161b57a0b9
 # ╟─c5aa61e2-06b9-4bb6-819f-b0043d5bf932
 # ╟─f656c150-eeb8-4eb7-8c8f-48f213d14a88
-# ╟─0189cd8a-f034-4c20-8571-14fb5da873e7
+# ╟─68a82310-ea56-4c79-937d-fd3f12961617
+# ╠═0189cd8a-f034-4c20-8571-14fb5da873e7
 # ╟─2c49defa-0695-4974-8154-9f9688108a51
 # ╠═ffacf8a1-0750-48bd-880b-6c42014a7351
 # ╟─8a38cbad-5684-4a8e-91fc-b38f787cd5e1
@@ -424,6 +445,8 @@ df_floors |>
 # ╟─c552099a-9025-4297-8825-a4242559122d
 # ╠═9339dde8-2b00-406c-9fc4-ba34c4d8579c
 # ╟─5dc6a5f9-4ddb-4d57-87b7-df3e23155c56
+# ╟─03c531ee-7177-4cfd-811b-ab902212fcdd
+# ╠═d7146451-a459-48ca-878f-c75b874ccd21
 # ╠═00712037-2c82-4fd2-9777-e49d313e54fa
 # ╟─7998fa73-c5f8-4497-8b8f-8c43222773d9
 # ╠═41194cce-6f90-4404-827b-a24d3546dff0
@@ -432,6 +455,7 @@ df_floors |>
 # ╟─4a5c4d8a-1d5d-4458-885a-2658d9328489
 # ╠═22081464-abb6-4157-98bc-80c361144105
 # ╟─0b0dc862-a8f4-4bc8-b5fd-50e74c221bc5
+# ╠═cf320c13-2b65-4435-8f39-54d6217a7d1b
 # ╠═61f017e1-ea63-4d6d-aedc-25d943871975
 # ╟─f74a93fb-6c1b-4080-b40c-5fc4590b6125
 # ╠═2389995c-1758-4d91-baf7-d3e0dcf7ce85
