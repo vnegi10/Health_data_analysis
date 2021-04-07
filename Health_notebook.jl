@@ -26,10 +26,11 @@ begin
 		Pkg.PackageSpec(name="Query"),
 		Pkg.PackageSpec(name="VegaLite"),
 		Pkg.PackageSpec(name="Dates"),
-		Pkg.PackageSpec(name="HTTP")			
+		Pkg.PackageSpec(name="HTTP"),
+		Pkg.PackageSpec(name="Statistics")			
         ])
 
-    using PlutoUI, DataFrames, CSV, Query, VegaLite, Dates, HTTP
+    using PlutoUI, DataFrames, CSV, Query, VegaLite, Dates, HTTP, Statistics
 end
 
 # ╔═╡ 8268035c-aaf7-4811-b858-20161b57a0b9
@@ -375,18 +376,22 @@ md"
 ### Heart rate distribution for the selected time period
 ---
 
-Heart rate is measured by my watch every 10 minutes. I wear it almost everyday. That means most of the data points are collected while I am sitting (mostly relaxed) at my desk for work. Data appears to be clustered around the resting heart rate range of 60-100 beats per minute. That's a relief!
+Heart rate is measured by my watch every 10 minutes. I wear it almost everyday. That means most of the data points are collected while I am sitting (mostly relaxed) at my desk for work. Data appears to be clustered around the resting heart rate range of 60-100 beats per minute (bpm) with a mean around 79 bpm. That's a relief!
 "
 
 # ╔═╡ d2789f5e-3642-4a39-9776-60959c553990
-df_heart_filter |> 
-
-@vlplot(:bar, 
-	x = {:heart_rate, "axis" = {"title" = "Measured heart rate [bpm]", "labelFontSize" = 12, "titleFontSize" = 14}}, 
-	y = {"count()", "axis" = {"title" = "Number of counts", "labelFontSize" = 12, "titleFontSize" = 14 }}, 
-	width = 850, height = 500, 
-	"title" = {"text" = "Heart rate distribution from $(Date.(start_date)) to $(Date.(end_date))", "fontSize" = 16},
-	color = :heart_rate)
+begin
+	μ = mean(df_heart_filter[!,:heart_rate])
+	
+	df_heart_filter |> 
+	
+	@vlplot(:bar, 
+		x = {:heart_rate, "axis" = {"title" = "Measured heart rate [bpm]", "labelFontSize" = 12, "titleFontSize" = 14}}, 
+		y = {"count()", "axis" = {"title" = "Number of counts", "labelFontSize" = 12, "titleFontSize" = 14 }}, 
+		width = 850, height = 500, 
+		"title" = {"text" = "Heart rate distribution from $(Date.(start_date)) to $(Date.(end_date)) with mean = $(round(μ, digits = 2)) bpm", "fontSize" = 16},
+		color = :heart_rate)
+end
 
 # ╔═╡ d8ad02a1-c0e7-47d7-8814-3d4f994c953c
 md"
