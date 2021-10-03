@@ -59,17 +59,26 @@ URL to the files have been added below. They are read directly into a DataFrame.
 # ╔═╡ ffacf8a1-0750-48bd-880b-6c42014a7351
 begin
 	
-	url_pedometer = "https://raw.githubusercontent.com/vnegi10/Health_data_analysis/master/data/com.samsung.shealth.tracker.pedometer_day_summary.202104030009.csv"	
+	# GitHub link	
+	const URL = "https://raw.githubusercontent.com/vnegi10/Health_data_analysis/master/data"
 	
-	df_pedometer_raw = CSV.File(HTTP.get(url_pedometer, require_ssl_verification = false).body, header = 2) |> DataFrame
+	# CSV files from Samsung Health app	
+	files = ["com.samsung.shealth.tracker.pedometer_day_summary.202110031456.csv", 
+		     "com.samsung.shealth.tracker.heart_rate.202110031456.csv",
+		     "com.samsung.health.floors_climbed.202110031456.csv"]	
 	
-	url_heart_rate = "https://raw.githubusercontent.com/vnegi10/Health_data_analysis/master/data/com.samsung.shealth.tracker.heart_rate.202104030009.csv"
+	# Function to generate url	
+	gen_url(file::String, url::String=URL) = joinpath(url, file)	
+		
+end
+
+# ╔═╡ 5c1645d7-f51e-4f53-86ff-05b2e60865db
+begin
 	
-	df_heart_raw = CSV.File(HTTP.get(url_heart_rate, require_ssl_verification = false).body, header = 2) |> DataFrame
-	
-	url_floors = "https://raw.githubusercontent.com/vnegi10/Health_data_analysis/master/data/com.samsung.health.floors_climbed.202104030009.csv"
-	
-	df_floors_raw = CSV.File(HTTP.get(url_floors, require_ssl_verification = false).body, header = 2) |> DataFrame
+	# Function to convert url to DataFrame	
+	url_to_df(url::String) = CSV.File(HTTP.get(url, require_ssl_verification = false).body, header = 2) |> DataFrame
+		
+	df_pedometer_raw, df_heart_raw, df_floors_raw = [url_to_df(gen_url(file)) for file in files]
 	
 end
 
@@ -79,14 +88,19 @@ md"
 
 "
 
+# ╔═╡ 7bc8f218-01c5-4956-a156-82c6d5cb7d5b
+df_pedometer_raw
+
 # ╔═╡ bd5ffe99-b7ce-4883-9198-73391a71e695
 # Check size of the DataFrame
-
 size(df_pedometer_raw)
+
+# ╔═╡ cc438ad3-da8b-4da6-9ccd-8dc47a098545
+# Get column names
+names(df_pedometer_raw)
 
 # ╔═╡ 824b9f5f-2b7c-414c-9aea-5a6877732139
 # Check various statistics about the DataFrame
-
 describe(df_pedometer_raw)
 
 # ╔═╡ e83af676-3745-49fe-aa9c-e66fc3e2ef28
@@ -129,7 +143,8 @@ We calculate the cumulative distance and add it to a separate column `cumul_dist
 # Calculate cumulative distance and add a new column to the existing DataFrame
 begin
 	    cumul_distance = Float64[]
-	    day_type, day, month, year = (Any[] for i = 1:4)	    
+	    day_type, day, month = (String[] for i = 1:3)	 
+	    year = Int64[]
 	    
 		for i = 1:size(df_pedometer)[1]
 			push!(cumul_distance, sum(df_pedometer[!, :distance][1:i]))
@@ -165,6 +180,12 @@ md" **Select end date**"
 # ╔═╡ dc3696c2-479b-4aa9-9552-bd858f475c2b
 @bind end_date DateField(default = DateTime(2020,12,31))
 
+# ╔═╡ 84fad772-b232-4e46-b219-be9fec0a979b
+
+
+# ╔═╡ 0ce2c55e-af3b-4843-8abf-64876bdaff0b
+
+
 # ╔═╡ 0e27122a-f517-458a-a3de-ad4f6a0cbc60
 md" DataFrame is filtered based on the time range selected above. **@filter** is a powerful macro provided by the Query.jl package. We filter out rows for which `create_time` lies between `start_date` and `end_date`.
 "
@@ -183,7 +204,7 @@ Our filtered DataFrame `df_pedometer_filter` can be passed directly to **@vlplot
 "
 
 # ╔═╡ 9339dde8-2b00-406c-9fc4-ba34c4d8579c
-df_pedometer_filter |> @vlplot("mark"={:area, "line" = {"color" = "seagreen"},
+figure1 = df_pedometer_filter |> @vlplot("mark"={:area, "line" = {"color" = "seagreen"},
         				"color"={"x1"=1, "y1"=1, "x2"=1, "y2"=0,
            				 "gradient"=:linear, "stops" = [
                			 {"offset"=0, "color"="white"},
@@ -192,6 +213,9 @@ df_pedometer_filter |> @vlplot("mark"={:area, "line" = {"color" = "seagreen"},
 	y = {:step_count, "axis" = {"title" = "Daily steps", "labelFontSize" = 12, "titleFontSize" = 14 }}, 
 	width = 750, height = 500, 
 	"title" = {"text" = "Daily steps from $(Date.(start_date)) to $(Date.(end_date))", "fontSize" = 16})
+
+# ╔═╡ d850b608-bfb2-4b02-89cb-f2af27417a28
+save_fig(filename::String, figure::VegaLite.VLSpec) = save(joinpath("figures",filename), figure)
 
 # ╔═╡ 5dc6a5f9-4ddb-4d57-87b7-df3e23155c56
 md" We can plot a histogram to see the distribution of steps between different years. Looking at data for 2020 vs 2019, it is clear that I have done less steps in 2020. This is likely due to the Corona situation.
@@ -205,14 +229,17 @@ md" **Change the number of max bins by dragging the slider below** "
 @bind bins1 Slider(25:75, default=50, show_value=true)
 
 # ╔═╡ 00712037-2c82-4fd2-9777-e49d313e54fa
-df_pedometer_filter |> 
+figure2 = df_pedometer_filter |> 
 
 @vlplot(:bar, 
 	x = {:step_count, "axis" = {"title" = "Number of steps", "labelFontSize" = 12, "titleFontSize" = 14}, "bin" = {"maxbins" = bins1}}, 
 	y = {"count()", "axis" = {"title" = "Number of counts", "labelFontSize" = 12, "titleFontSize" = 14 }}, 
 	width = 850, height = 500, 
 	"title" = {"text" = "Step count distribution from $(Date.(start_date)) to $(Date.(end_date))", "fontSize" = 16},
-	color = :year)
+	color = "year:n")
+
+# ╔═╡ beb86d06-2294-482d-9d00-a2c72986915a
+save_fig("Daily_steps_hist.png", figure2)
 
 # ╔═╡ 7998fa73-c5f8-4497-8b8f-8c43222773d9
 md" 
@@ -241,7 +268,7 @@ Setting the color scale to `:distance` column in our DataFrame, renders the bars
 "
 
 # ╔═╡ 19a9837e-db8e-4ff4-9f75-1c6f5ad9fc74
-df_pedometer_filter |> 
+figure3 = df_pedometer_filter |> 
 
 @vlplot("mark"={:bar, "width" = 3}, 
 	x = {:create_time, "axis" = {"title" = "Time", "labelFontSize" = 12, "titleFontSize" = 14}, "type" = "temporal"}, 
@@ -250,6 +277,9 @@ df_pedometer_filter |>
 	"title" = {"text" = "Daily distance from $(Date.(start_date)) to $(Date.(end_date))", "fontSize" = 16},
 	color = :distance)
 
+# ╔═╡ 8f1981a4-f553-4e2c-a070-5d60f2fec611
+save_fig("Daily_distance.png", figure3)
+
 # ╔═╡ 4a5c4d8a-1d5d-4458-885a-2658d9328489
 md"
 ### Cumulative distance
@@ -257,7 +287,7 @@ md"
 "
 
 # ╔═╡ 22081464-abb6-4157-98bc-80c361144105
-df_pedometer_filter |> 
+figure4 = df_pedometer_filter |> 
 
 @vlplot(:area, 
 	x = {:create_time, "axis" = {"title" = "Time", "labelFontSize" = 12, "titleFontSize" = 14}, "type" = "temporal"}, 
@@ -265,6 +295,9 @@ df_pedometer_filter |>
 	width = 850, height = 500, 
 	"title" = {"text" = "Cumulative distance from $(Date.(start_date)) to $(Date.(end_date))", "fontSize" = 16},
 	)
+
+# ╔═╡ fbb7c18f-82bb-4499-b608-687764ab391d
+save_fig("Cumum_distance_2019_2021.png", figure4)
 
 # ╔═╡ 0b0dc862-a8f4-4bc8-b5fd-50e74c221bc5
 md"
@@ -278,7 +311,7 @@ md"
 @bind bins2 Slider(25:75, default=50, show_value=true)
 
 # ╔═╡ 61f017e1-ea63-4d6d-aedc-25d943871975
-df_pedometer_filter |> 
+figure5 = df_pedometer_filter |> 
 
 @vlplot(:bar, 
 	x = {:active_time, "axis" = {"title" = "Measured active time [minutes]", "labelFontSize" = 12, "titleFontSize" = 14}, "bin" = {"maxbins" = bins2}}, 
@@ -287,11 +320,11 @@ df_pedometer_filter |>
 	"title" = {"text" = "Active time distribution from $(Date.(start_date)) to $(Date.(end_date))", "fontSize" = 16},
 	color = :day_type)
 
-# ╔═╡ f74a93fb-6c1b-4080-b40c-5fc4590b6125
-md" I appear to be quite active on Wednesdays, that is surprising!"
+# ╔═╡ f50e5792-4be7-4dc0-b5fb-ffc134320405
+save_fig("Active_time_daytype_2019_2021.png", figure5)
 
 # ╔═╡ 2389995c-1758-4d91-baf7-d3e0dcf7ce85
-df_pedometer_filter |> 
+figure6 = df_pedometer_filter |> 
 
 @vlplot(:bar, 
 	x = {:active_time, "axis" = {"title" = "Measured active time [minutes]", "labelFontSize" = 12, "titleFontSize" = 14}, "bin" = {"maxbins" = bins2}}, 
@@ -299,6 +332,12 @@ df_pedometer_filter |>
 	width = 850, height = 500, 
 	"title" = {"text" = "Active time distribution from $(Date.(start_date)) to $(Date.(end_date))", "fontSize" = 16},
 	color = :day)
+
+# ╔═╡ 7b6fe3e6-01b2-43b9-80a1-6aa62d90b0ad
+md" I appear to be quite active on Wednesdays, that is surprising!"
+
+# ╔═╡ b383c509-4704-406f-92e7-c8bc04210204
+save_fig("Active_time_perday_2019_2021.png", figure6)
 
 # ╔═╡ 007192c1-a745-4ced-8af4-c320c8e44181
 md"
@@ -314,7 +353,7 @@ As expected, number of steps and total calories consumed have a direct correlati
 @bind select_year Slider(2018:2021; default=2019, show_value=true)
 
 # ╔═╡ 3d63542e-5a51-4368-85e5-2e0be17ae991
-df_pedometer |> 
+figure7 = df_pedometer |> 
 
 @filter(_.year == select_year) |>
 
@@ -325,16 +364,24 @@ df_pedometer |>
 	"title" = {"text" = "2D histogram scatterplot calories vs step count for $(select_year)", "fontSize" = 16},
 	size = "count()")
 
+# ╔═╡ 75e007d4-8f37-463f-ba9e-03548a771125
+save_fig("Step_count_vs_calories_$(select_year).png", figure7)
+
 # ╔═╡ d8a77ace-18e6-4c3f-a56c-0a4bf65c536f
 md"
 ### Heatmap of step count vs active time
 ---
 "
 
-# ╔═╡ 7353321e-4849-4685-9276-57b8eefa0745
-df_pedometer |> 
+# ╔═╡ 6e043d91-8b33-49e2-ab0c-e5c3cb86fd15
+md" 
+**Move slider to select a year:** $(@bind select_year_2 Slider(2018:2021; default=2019, show_value=true))
+"
 
-@filter(_.year == select_year) |>
+# ╔═╡ 7353321e-4849-4685-9276-57b8eefa0745
+figure8 = df_pedometer |> 
+
+@filter(_.year == select_year_2) |>
 
 @vlplot(:rect,    
     x = {:step_count, "axis" = {"title" = "Number of steps", "labelFontSize" = 14, "titleFontSize" = 14}, "bin" = {"maxbins" = 30}}, 
@@ -351,8 +398,11 @@ df_pedometer |>
         }
     },
 	width = 850, height = 500, 
-	"title" = {"text" = " Heatmap of step count vs active time for $(select_year) seen on the distance [km] scale", "fontSize" = 16},
+	"title" = {"text" = " Heatmap of step count vs active time for $(select_year_2) seen on the distance [km] scale", "fontSize" = 16},
 )
+
+# ╔═╡ f02e1137-25cd-4d9c-bea8-4822beecd4e0
+save_fig("Heatmap_$(select_year).png", figure8)
 
 # ╔═╡ c24250e2-5d8f-464a-8c33-48d165242163
 md"
@@ -385,7 +435,7 @@ md"
 "
 
 # ╔═╡ f35989fa-903c-4d79-9cbc-59ab4ff9ff2f
-df_heart_filter |> 
+figure9 = df_heart_filter |> 
 
 @vlplot(:circle, 
 	x = {:create_time, "axis" = {"title" = "Time", "labelFontSize" = 12, "titleFontSize" = 14}, "type" = "temporal"}, 
@@ -393,6 +443,9 @@ df_heart_filter |>
 	width = 850, height = 500, 
 	"title" = {"text" = "Heart rate from $(Date.(start_date)) to $(Date.(end_date))", "fontSize" = 16},
 	size = :heart_rate)
+
+# ╔═╡ fbdd8dca-6c08-445a-9965-76321eafd41f
+save_fig("Heart_rate_2019_2021.png", figure9)
 
 # ╔═╡ ce3f3eb8-a7d0-4b05-942a-ec4bf1df5a6f
 md"
@@ -413,13 +466,16 @@ begin
 		
 	μ = mean(df_heart_year[!,:heart_rate]) # calculate mean heart rate
 	
-	df_heart_year |> @vlplot(:bar, 
+	figure10 = df_heart_year |> @vlplot(:bar, 
 		x = {:heart_rate, "axis" = {"title" = "Measured heart rate [bpm]", "labelFontSize" = 12, "titleFontSize" = 14}}, 
 		y = {"count()", "axis" = {"title" = "Number of counts", "labelFontSize" = 12, "titleFontSize" = 14 }}, 
 		width = 850, height = 500, 
 		"title" = {"text" = "Heart rate distribution for $(select_year_1) with mean = $(round(μ, digits = 2)) bpm", "fontSize" = 16},
 		color = :heart_rate)
 end
+
+# ╔═╡ 30e2f5e2-7ec6-4978-8f7e-eb3a344af155
+save_fig("Heart_rate_distribution_2021.png", figure10)
 
 # ╔═╡ d8ad02a1-c0e7-47d7-8814-3d4f994c953c
 md"
@@ -443,7 +499,7 @@ Nothing too exciting here, except for a huge spike in Nov, 2019. I was wearing t
 "
 
 # ╔═╡ 7167ce6d-1b77-48e6-ad78-a8082b87b8eb
-df_floors |> 
+figure11 = df_floors |> 
 
 @filter(_.create_time > start_date &&  _.create_time < end_date) |> 
 
@@ -452,6 +508,9 @@ df_floors |>
 	y = {:floor, "axis" = {"title" = "Number of floors", "labelFontSize" = 12, "titleFontSize" = 14 }}, 
 	width = 850, height = 500, 
 	"title" = {"text" = "Floors climbed from $(Date.(start_date)) to $(Date.(end_date))", "fontSize" = 16})
+
+# ╔═╡ b592de9e-2c80-49c8-8525-1cbddae6fb16
+save_fig("Floors_2019_2021.png", figure11)
 
 # ╔═╡ 5430d24e-53b6-4189-bf7d-328b514e5b1f
 md"
@@ -932,55 +991,72 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═0189cd8a-f034-4c20-8571-14fb5da873e7
 # ╟─2c49defa-0695-4974-8154-9f9688108a51
 # ╠═ffacf8a1-0750-48bd-880b-6c42014a7351
+# ╠═5c1645d7-f51e-4f53-86ff-05b2e60865db
 # ╟─8a38cbad-5684-4a8e-91fc-b38f787cd5e1
+# ╠═7bc8f218-01c5-4956-a156-82c6d5cb7d5b
 # ╠═bd5ffe99-b7ce-4883-9198-73391a71e695
+# ╠═cc438ad3-da8b-4da6-9ccd-8dc47a098545
 # ╠═824b9f5f-2b7c-414c-9aea-5a6877732139
 # ╟─e83af676-3745-49fe-aa9c-e66fc3e2ef28
-# ╠═eb1dc392-eb58-4034-8784-0a8ef79c4ff0
+# ╟─eb1dc392-eb58-4034-8784-0a8ef79c4ff0
 # ╟─b7dd0336-2dad-4c0c-b934-eb9d235b658d
-# ╠═6fa76290-bb8b-4b96-b54f-c68e1c699a4a
+# ╟─6fa76290-bb8b-4b96-b54f-c68e1c699a4a
 # ╟─7b11af41-9d7e-425d-9517-1914165967bd
 # ╟─15e32715-bfc8-4228-b7f8-9abac314a610
-# ╟─277c7460-788f-4b93-b1d2-b4d4e4d0a14d
+# ╠═277c7460-788f-4b93-b1d2-b4d4e4d0a14d
 # ╟─7f427cfc-e21b-413b-821f-6f0d86954f1c
-# ╟─dc3696c2-479b-4aa9-9552-bd858f475c2b
+# ╠═dc3696c2-479b-4aa9-9552-bd858f475c2b
+# ╠═84fad772-b232-4e46-b219-be9fec0a979b
+# ╠═0ce2c55e-af3b-4843-8abf-64876bdaff0b
 # ╟─0e27122a-f517-458a-a3de-ad4f6a0cbc60
 # ╠═a5ea4203-08eb-4afd-ab36-564482274ec3
-# ╠═c552099a-9025-4297-8825-a4242559122d
+# ╟─c552099a-9025-4297-8825-a4242559122d
 # ╠═9339dde8-2b00-406c-9fc4-ba34c4d8579c
+# ╠═d850b608-bfb2-4b02-89cb-f2af27417a28
 # ╟─5dc6a5f9-4ddb-4d57-87b7-df3e23155c56
 # ╟─03c531ee-7177-4cfd-811b-ab902212fcdd
 # ╠═d7146451-a459-48ca-878f-c75b874ccd21
 # ╠═00712037-2c82-4fd2-9777-e49d313e54fa
+# ╠═beb86d06-2294-482d-9d00-a2c72986915a
 # ╟─7998fa73-c5f8-4497-8b8f-8c43222773d9
 # ╠═41194cce-6f90-4404-827b-a24d3546dff0
 # ╟─fe15cdda-3128-4a7f-be92-58cad62c5007
 # ╠═19a9837e-db8e-4ff4-9f75-1c6f5ad9fc74
+# ╠═8f1981a4-f553-4e2c-a070-5d60f2fec611
 # ╟─4a5c4d8a-1d5d-4458-885a-2658d9328489
 # ╠═22081464-abb6-4157-98bc-80c361144105
+# ╠═fbb7c18f-82bb-4499-b608-687764ab391d
 # ╟─0b0dc862-a8f4-4bc8-b5fd-50e74c221bc5
 # ╠═cf320c13-2b65-4435-8f39-54d6217a7d1b
-# ╠═61f017e1-ea63-4d6d-aedc-25d943871975
-# ╟─f74a93fb-6c1b-4080-b40c-5fc4590b6125
-# ╠═2389995c-1758-4d91-baf7-d3e0dcf7ce85
+# ╟─61f017e1-ea63-4d6d-aedc-25d943871975
+# ╟─f50e5792-4be7-4dc0-b5fb-ffc134320405
+# ╟─2389995c-1758-4d91-baf7-d3e0dcf7ce85
+# ╟─7b6fe3e6-01b2-43b9-80a1-6aa62d90b0ad
+# ╠═b383c509-4704-406f-92e7-c8bc04210204
 # ╟─007192c1-a745-4ced-8af4-c320c8e44181
 # ╟─1bb2cde7-f951-4d33-af50-46bef9a183c1
 # ╠═3d63542e-5a51-4368-85e5-2e0be17ae991
+# ╠═75e007d4-8f37-463f-ba9e-03548a771125
 # ╟─d8a77ace-18e6-4c3f-a56c-0a4bf65c536f
+# ╠═6e043d91-8b33-49e2-ab0c-e5c3cb86fd15
 # ╠═7353321e-4849-4685-9276-57b8eefa0745
+# ╠═f02e1137-25cd-4d9c-bea8-4822beecd4e0
 # ╟─c24250e2-5d8f-464a-8c33-48d165242163
 # ╠═54e3fa06-f672-404e-bcdd-c414846df0f9
 # ╠═2180887e-ff4b-4a22-be86-00c6cd72a285
 # ╟─612fb369-0149-4090-ac2f-37a4926a1293
 # ╟─b7e5fe84-e455-4b71-aba6-1b5927eed45e
 # ╠═f35989fa-903c-4d79-9cbc-59ab4ff9ff2f
+# ╠═fbdd8dca-6c08-445a-9965-76321eafd41f
 # ╟─ce3f3eb8-a7d0-4b05-942a-ec4bf1df5a6f
-# ╠═4bf8b146-bf39-4e56-90dc-572003e49f0e
+# ╟─4bf8b146-bf39-4e56-90dc-572003e49f0e
 # ╠═d2789f5e-3642-4a39-9776-60959c553990
+# ╠═30e2f5e2-7ec6-4978-8f7e-eb3a344af155
 # ╟─d8ad02a1-c0e7-47d7-8814-3d4f994c953c
 # ╠═bd47dea3-3ad4-41d0-9104-81cf2bce8ad8
 # ╟─ec0fd3dc-a7ae-4331-af9b-2a547441befa
 # ╠═7167ce6d-1b77-48e6-ad78-a8082b87b8eb
+# ╠═b592de9e-2c80-49c8-8525-1cbddae6fb16
 # ╟─5430d24e-53b6-4189-bf7d-328b514e5b1f
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
