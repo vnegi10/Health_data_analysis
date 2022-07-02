@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.16.0
+# v0.18.4
 
 using Markdown
 using InteractiveUtils
@@ -7,8 +7,9 @@ using InteractiveUtils
 # This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
 macro bind(def, element)
     quote
+        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
         local el = $(esc(element))
-        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : missing
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
         el
     end
 end
@@ -20,9 +21,11 @@ using PlutoUI, DataFrames, CSV, Query, VegaLite, Dates, HTTP, Statistics
 md"## Visualizing Samsung Health App Data"
 
 # ╔═╡ c5aa61e2-06b9-4bb6-819f-b0043d5bf932
-md" > **Demo notebook for PlutoCon 2021**
+md" > **Demo notebook for JuliaCon 2022**
 >
 > **Author: Vikas Negi**
+>
+> [GitHub - vnegi10](https://github.com/vnegi10)
 >
 > [LinkedIn] (https://www.linkedin.com/in/negivikas/)
 "
@@ -157,7 +160,12 @@ begin
 				push!(day_type, "weekday")
 			end			
 		end
-	    insertcols!(df_pedometer, 1, :cumul_distance => cumul_distance, :day_type => 					day_type, :day => day, :month => month, :year => year)	    
+	    insertcols!(df_pedometer, 1, 
+			        :cumul_distance => cumul_distance, 
+			        :day_type => day_type, 
+			        :day => day, 
+			        :month => month, 
+			        :year => year)	    
 end
 
 # ╔═╡ 7b11af41-9d7e-425d-9517-1914165967bd
@@ -179,12 +187,6 @@ md" **Select end date**"
 
 # ╔═╡ dc3696c2-479b-4aa9-9552-bd858f475c2b
 @bind end_date DateField(default = DateTime(2020,12,31))
-
-# ╔═╡ 84fad772-b232-4e46-b219-be9fec0a979b
-
-
-# ╔═╡ 0ce2c55e-af3b-4843-8abf-64876bdaff0b
-
 
 # ╔═╡ 0e27122a-f517-458a-a3de-ad4f6a0cbc60
 md" DataFrame is filtered based on the time range selected above. **@filter** is a powerful macro provided by the Query.jl package. We filter out rows for which `create_time` lies between `start_date` and `end_date`.
@@ -573,6 +575,10 @@ git-tree-sha1 = "31d0151f5716b655421d9d75b7fa74cc4e744df2"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
 version = "3.39.0"
 
+[[CompilerSupportLibraries_jll]]
+deps = ["Artifacts", "Libdl"]
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+
 [[ConstructionBase]]
 deps = ["LinearAlgebra"]
 git-tree-sha1 = "f74e9d5388b8620b4cee35d4c5a618dd4dc547f4"
@@ -737,7 +743,7 @@ uuid = "29816b5a-b9ab-546f-933c-edad1886dfa8"
 uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
 
 [[LinearAlgebra]]
-deps = ["Libdl"]
+deps = ["Libdl", "libblastrampoline_jll"]
 uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [[Logging]]
@@ -783,6 +789,10 @@ deps = ["Pkg"]
 git-tree-sha1 = "905224bbdd4b555c69bb964514cfa387616f0d3a"
 uuid = "2bd173c7-0d6d-553b-b6af-13a54713934c"
 version = "1.3.0"
+
+[[OpenBLAS_jll]]
+deps = ["Artifacts", "CompilerSupportLibraries_jll", "Libdl"]
+uuid = "4536629a-c528-5b80-bd46-f80d51c5b363"
 
 [[OrderedCollections]]
 git-tree-sha1 = "85f8e6578bf1f9ee0d11e7bb1b1456435479d47c"
@@ -838,7 +848,7 @@ deps = ["InteractiveUtils", "Markdown", "Sockets", "Unicode"]
 uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
 
 [[Random]]
-deps = ["Serialization"]
+deps = ["SHA", "Serialization"]
 uuid = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 
 [[Reexport]]
@@ -973,6 +983,10 @@ version = "1.4.1"
 deps = ["Libdl"]
 uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
 
+[[libblastrampoline_jll]]
+deps = ["Artifacts", "Libdl", "OpenBLAS_jll"]
+uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
+
 [[nghttp2_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "8e850ede-7688-5339-a07c-302acd2aaf8d"
@@ -998,16 +1012,14 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═cc438ad3-da8b-4da6-9ccd-8dc47a098545
 # ╠═824b9f5f-2b7c-414c-9aea-5a6877732139
 # ╟─e83af676-3745-49fe-aa9c-e66fc3e2ef28
-# ╟─eb1dc392-eb58-4034-8784-0a8ef79c4ff0
+# ╠═eb1dc392-eb58-4034-8784-0a8ef79c4ff0
 # ╟─b7dd0336-2dad-4c0c-b934-eb9d235b658d
-# ╟─6fa76290-bb8b-4b96-b54f-c68e1c699a4a
+# ╠═6fa76290-bb8b-4b96-b54f-c68e1c699a4a
 # ╟─7b11af41-9d7e-425d-9517-1914165967bd
 # ╟─15e32715-bfc8-4228-b7f8-9abac314a610
 # ╠═277c7460-788f-4b93-b1d2-b4d4e4d0a14d
 # ╟─7f427cfc-e21b-413b-821f-6f0d86954f1c
 # ╠═dc3696c2-479b-4aa9-9552-bd858f475c2b
-# ╠═84fad772-b232-4e46-b219-be9fec0a979b
-# ╠═0ce2c55e-af3b-4843-8abf-64876bdaff0b
 # ╟─0e27122a-f517-458a-a3de-ad4f6a0cbc60
 # ╠═a5ea4203-08eb-4afd-ab36-564482274ec3
 # ╟─c552099a-9025-4297-8825-a4242559122d
