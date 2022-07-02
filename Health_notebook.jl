@@ -66,9 +66,9 @@ begin
 	const URL = "https://raw.githubusercontent.com/vnegi10/Health_data_analysis/master/data"
 	
 	# CSV files from Samsung Health app	
-	files = ["com.samsung.shealth.tracker.pedometer_day_summary.202110031456.csv", 
-		     "com.samsung.shealth.tracker.heart_rate.202110031456.csv",
-		     "com.samsung.health.floors_climbed.202110031456.csv"]	
+	files = ["com.samsung.shealth.tracker.pedometer_day_summary.202207021430.csv", 
+		     "com.samsung.shealth.tracker.heart_rate.202207021430.csv",
+		     "com.samsung.health.floors_climbed.202207021430.csv"]	
 	
 	# Function to generate url	
 	gen_url(file::String, url::String=URL) = joinpath(url, file)	
